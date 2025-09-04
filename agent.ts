@@ -3,7 +3,16 @@ import * as readline from "readline";
 import OpenAI from "openai";
 import { toolDefs, callTool } from "./tools";
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// APIキーの検証
+const apiKey = process.env.OPENAI_API_KEY;
+if (!apiKey) {
+  console.error(
+    "❌ OPENAI_API_KEY が設定されていません。.envファイルを確認してください。"
+  );
+  process.exit(1);
+}
+
+const client = new OpenAI({ apiKey });
 
 // モデルは手元の環境に合わせて置き換えてOK
 const MODEL = "gpt-4o-mini"; // 例: コスト軽めのtool-calling対応モデル
@@ -23,9 +32,20 @@ type Msg = {
   tool_calls?: any[];
 };
 const history: Msg[] = [{ role: "system", content: SYSTEM }];
+const MAX_HISTORY = 50; // 履歴の最大件数を制限
 
 async function step(userInput: string) {
+  // 入力検証
+  if (!userInput || userInput.length > 1000) {
+    return "入力が無効です。1000文字以内で入力してください。";
+  }
+
   history.push({ role: "user", content: userInput });
+
+  // 履歴サイズの制限
+  if (history.length > MAX_HISTORY) {
+    history.splice(1, history.length - MAX_HISTORY + 1);
+  }
 
   const res = await client.chat.completions.create({
     model: MODEL,
@@ -57,9 +77,24 @@ async function step(userInput: string) {
         tool_calls: calls,
       });
 
-      const args = call.function.arguments
-        ? JSON.parse(call.function.arguments)
-        : {};
+      // 安全なJSON解析
+      let args = {};
+      if (call.function.arguments) {
+        try {
+          args = JSON.parse(call.function.arguments);
+          // 基本的な検証
+          if (
+            typeof args !== "object" ||
+            args === null ||
+            Array.isArray(args)
+          ) {
+            throw new Error("Invalid arguments format");
+          }
+        } catch (error) {
+          console.error("❌ ツール引数の解析に失敗しました:", error);
+          return "ツール引数の解析に失敗しました。";
+        }
+      }
       const result = await callTool(call.function.name, args);
 
       // toolメッセージ追加
