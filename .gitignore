@@ -4,3 +4,7 @@
 *.pem
 
 .env*
+
+# google calendar api用のファイル
+credentials.json
+token.json
