@@ -2,7 +2,6 @@ import { addTodoTool, addTodo } from "./addTodo.js";
 import { listTodosTool, listTodos } from "./listTodos.js";
 import { addCalendarEvent, addCalendarEventTool } from "./addCalender.js";
 
-// ツール定義の配列
 export const toolDefs = [
   addCalendarEventTool,
   addTodoTool,
