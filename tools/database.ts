@@ -10,18 +10,17 @@ if (!DB_PATH.startsWith(process.cwd())) {
   throw new Error("Invalid file path");
 }
 
-export function readTodos(): Todo[] {
+export function readTodos() {
   try {
     const raw = fs.readFileSync(DB_PATH, "utf-8");
-    const parsed = JSON.parse(raw);
+    const parsed: Todo[] = JSON.parse(raw);
 
-    // データ構造の検証
     if (!Array.isArray(parsed)) {
       console.warn("Invalid data format, resetting to empty array");
       return [];
     }
 
-    return parsed as Todo[];
+    return parsed;
   } catch (error) {
     console.warn("Failed to read todos:", error);
     return [];
