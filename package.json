@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "start": "npx tsx agent.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev:graph": "npx tsx dev-graph.ts"
   },
   "keywords": [],
   "author": "",
@@ -17,5 +17,8 @@
     "openai": "^5.19.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.2"
+  },
+  "devDependencies": {
+    "ts-morph": "^26.0.0"
   }
 }
