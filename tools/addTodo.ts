@@ -1,5 +1,5 @@
-import { readTodos, writeTodos } from "./database.js";
-import type { Todo } from "./types.js";
+import { readTodos, writeTodos } from "../utils/database.js";
+import type { Todo } from "../utils/types.js";
 
 export const addTodoTool = {
   type: "function",

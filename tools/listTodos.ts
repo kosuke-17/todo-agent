@@ -1,4 +1,4 @@
-import { readTodos } from "./database.js";
+import { readTodos } from "../utils/database.js";
 
 export const listTodosTool = {
   type: "function",

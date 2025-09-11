@@ -1,18 +1,8 @@
 import "dotenv/config";
 import * as readline from "readline";
-import OpenAI from "openai";
 import { toolDefs, callTool } from "./tools";
-
-// APIキーの検証
-const apiKey = process.env.OPENAI_API_KEY;
-if (!apiKey) {
-  console.error(
-    "❌ OPENAI_API_KEY が設定されていません。.envファイルを確認してください。"
-  );
-  process.exit(1);
-}
-
-const client = new OpenAI({ apiKey });
+import { Msg } from "./utils/types";
+import { openai } from "./utils/openai";
 
 // モデルは手元の環境に合わせて置き換えてOK
 const MODEL = "gpt-4o-mini"; // 例: コスト軽めのtool-calling対応モデル
@@ -26,34 +16,10 @@ const SYSTEM = `
 【重要な指示】
 - カレンダーイベントの作成時は、現在時刻を取得して直接add_calendar_eventツールを使用してください。
 - 入力テキストに含まれる相対的な時間表現（例: 明日、来週の月曜、午後3時）は、
-  必ず {now} と {timezone} を基準に ISO8601（タイムゾーンオフセット付き）へ変換してください。
-[例1]
-入力: "明日12時から13時に 会議準備 を追加"
-now=2025-09-05T22:00:00+09:00 timezone=Asia/Tokyo
-出力:
-{"summary":"会議準備","start":"2025-09-06T12:00:00+09:00","end":"2025-09-06T13:00:00+09:00"}
-
-[例2]
-入力: "来週の月曜の午後3時にデザインレビュー"
-now=2025-09-05T22:00:00+09:00 timezone=Asia/Tokyo  # 2025-09-05(金)
-→ 来週の月曜 = 2025-09-08
-出力:
-{"summary":"デザインレビュー","start":"2025-09-08T15:00:00+09:00","end":"2025-09-08T16:00:00+09:00"}
-
-[例3]
-入力: "9/12 14:30から45分 ミーティング"
-→ 明示フォーマット優先、end は +45m
-出力:
-{"summary":"ミーティング","start":"2025-09-12T14:30:00+09:00","end":"2025-09-12T15:15:00+09:00"}
-
-[例4]
-入力: "金曜 夕方に面談"
-→ 夕方=17:00開始を規約化（規約は明記）
-出力:
-{"summary":"面談","start":"2025-09-05T17:00:00+09:00","end":"2025-09-05T18:00:00+09:00"}
+  必ず {now}+09:00 と {timezone} を基準に ISO8601（タイムゾーンオフセット付き）へ変換してください。
 `;
 
-const now = new Date().toISOString(); // 例: "2025-09-05T13:00:00.000Z"
+const now = new Date().toISOString();
 // Asia/Tokyo 固定ならアプリ層で "+09:00" 付きに整形して渡す
 const timezone = "Asia/Tokyo";
 const systemContent = SYSTEM.replace("{now}", now).replace(
@@ -61,13 +27,6 @@ const systemContent = SYSTEM.replace("{now}", now).replace(
   timezone
 );
 
-type Msg = {
-  role: "system" | "user" | "assistant" | "tool";
-  content: string;
-  name?: string;
-  tool_call_id?: string;
-  tool_calls?: any[];
-};
 const history: Msg[] = [{ role: "system", content: systemContent }];
 const MAX_HISTORY = 50; // 履歴の最大件数を制限
 
@@ -84,7 +43,7 @@ async function step(userInput: string) {
     history.splice(1, history.length - MAX_HISTORY + 1);
   }
 
-  const res = await client.chat.completions.create({
+  const res = await openai.chat.completions.create({
     model: MODEL,
     messages: history.map(
       ({ role, content, name, tool_call_id, tool_calls }) => {
@@ -148,7 +107,7 @@ async function step(userInput: string) {
       });
 
       // ツール結果を踏まえ最終回答
-      const follow = await client.chat.completions.create({
+      const follow = await openai.chat.completions.create({
         model: MODEL,
         messages: history.map(
           ({ role, content, name, tool_call_id, tool_calls }) => {
