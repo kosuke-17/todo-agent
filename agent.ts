@@ -1,18 +1,8 @@
 import "dotenv/config";
 import * as readline from "readline";
-import OpenAI from "openai";
 import { toolDefs, callTool } from "./tools";
-
-// APIキーの検証
-const apiKey = process.env.OPENAI_API_KEY;
-if (!apiKey) {
-  console.error(
-    "❌ OPENAI_API_KEY が設定されていません。.envファイルを確認してください。"
-  );
-  process.exit(1);
-}
-
-const client = new OpenAI({ apiKey });
+import { Msg } from "./utils/types";
+import { openai } from "./utils/openai";
 
 // モデルは手元の環境に合わせて置き換えてOK
 const MODEL = "gpt-4o-mini"; // 例: コスト軽めのtool-calling対応モデル
@@ -61,13 +51,6 @@ const systemContent = SYSTEM.replace("{now}", now).replace(
   timezone
 );
 
-type Msg = {
-  role: "system" | "user" | "assistant" | "tool";
-  content: string;
-  name?: string;
-  tool_call_id?: string;
-  tool_calls?: any[];
-};
 const history: Msg[] = [{ role: "system", content: systemContent }];
 const MAX_HISTORY = 50; // 履歴の最大件数を制限
 
@@ -84,7 +67,7 @@ async function step(userInput: string) {
     history.splice(1, history.length - MAX_HISTORY + 1);
   }
 
-  const res = await client.chat.completions.create({
+  const res = await openai.chat.completions.create({
     model: MODEL,
     messages: history.map(
       ({ role, content, name, tool_call_id, tool_calls }) => {
@@ -148,7 +131,7 @@ async function step(userInput: string) {
       });
 
       // ツール結果を踏まえ最終回答
-      const follow = await client.chat.completions.create({
+      const follow = await openai.chat.completions.create({
         model: MODEL,
         messages: history.map(
           ({ role, content, name, tool_call_id, tool_calls }) => {

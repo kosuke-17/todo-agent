@@ -1,5 +1,5 @@
 import { google } from "googleapis";
-import { authorize } from "./auth";
+import { authorize } from "../utils/auth";
 
 export const addCalendarEventTool = {
   type: "function",
