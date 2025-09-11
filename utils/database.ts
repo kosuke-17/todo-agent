@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import type { Todo } from "./types.js";
+import type { Todo } from "./types";
 
 // 安全なファイルパス設定
 const DB_PATH = path.resolve(process.cwd(), "todos.json");
